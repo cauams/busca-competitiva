@@ -4,7 +4,7 @@ Repositório utilizado para a implementação do trabalho 2 da disciplina de Int
 Utilizamos como base a seguinte série de vídeos:
 [Connect 4 Game Python](https://www.youtube.com/playlist?list=PLFCB5Dp81iNV_inzM-R9AKkZZlePCZdtV)
 
-Para rodar o jogo:
+## Para rodar o jogo:
 
 1. Criar um ambiente virutal:
 

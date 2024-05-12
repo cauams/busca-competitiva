@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import pygame
 import sys
@@ -10,8 +11,13 @@ YELLOW = (255,255,0)
 
 ROW_COUNT = 6
 COLUMN_COUNT = 7
-PLAYER_PIECE = 1
-IA_PIECE = 2
+
+JOGADOR = 0
+IA = 1
+
+ESPACO_VAZIO = 0
+PECA_JOGADOR = 1
+PECA_IA = 2
 
 def create_board():
 	board = np.zeros((ROW_COUNT,COLUMN_COUNT))
@@ -22,6 +28,13 @@ def drop_piece(board, row, col, piece):
 
 def is_valid_location(board, col):
 	return board[ROW_COUNT-1][col] == 0
+
+def get_valid_locations(board):
+	valid_locations = []
+	for col in range(COLUMN_COUNT):
+		if is_valid_location(board, col):
+			valid_locations.append(col)
+	return valid_locations
 
 def get_next_open_row(board, col):
 	for r in range(ROW_COUNT):
@@ -64,17 +77,73 @@ def draw_board(board):
 	
 	for c in range(COLUMN_COUNT):
 		for r in range(ROW_COUNT):		
-			if board[r][c] == 1:
+			if board[r][c] == PECA_JOGADOR:
 				pygame.draw.circle(screen, RED, (int(c*SQUARESIZE+SQUARESIZE/2), height-int(r*SQUARESIZE+SQUARESIZE/2)), RADIUS)
-			elif board[r][c] == 2: 
+			elif board[r][c] == PECA_IA: 
 				pygame.draw.circle(screen, YELLOW, (int(c*SQUARESIZE+SQUARESIZE/2), height-int(r*SQUARESIZE+SQUARESIZE/2)), RADIUS)
 	pygame.display.update()
+
+def avaliar_posicao(board, piece):
+	## avaliacao horizontal
+	pontuacao = 0
+	for r in range(ROW_COUNT):
+		row_array = [int(i) for i in list(board[r,:])] # r,: significa que estamos pegando a linha r inteira junto com todas as colunas
+		for c in range(COLUMN_COUNT-3):
+			window = row_array[c:c+4]
+			if window.count(piece) == 4: # pontuacao pra oportunidade de ganhar horizontalmente
+				pontuacao += 100
+			elif window.count(piece) == 3 and window.count(ESPACO_VAZIO) == 1: # pontuacao pra oportunidade de enfileirar 3 horizontalmente
+				pontuacao += 10
+			elif window.count(piece) == 2 and window.count(ESPACO_VAZIO) == 1 or window.count(ESPACO_VAZIO) == 2:
+				pontuacao += 4
+
+	## avaliacao vertical
+	for c in range(COLUMN_COUNT):
+		col_array = [int(i) for i in list(board[:,c])]
+		for r in range(ROW_COUNT-3):
+			window = col_array[r:r+4]
+			if window.count(piece) == 4:
+				pontuacao += 100
+			elif window.count(piece) == 3 and window.count(ESPACO_VAZIO) == 1:
+				pontuacao += 10
+			elif window.count(piece) == 2 and window.count(ESPACO_VAZIO) == 1 or window.count(ESPACO_VAZIO) == 2:
+				pontuacao += 4
+
+	## avaliacao diagonal
+	for r in range(ROW_COUNT-3):
+		for c in range(COLUMN_COUNT-3):
+			window = [board[r+i][c+i] for i in range(4)]
+			if window.count(piece) == 4:
+				pontuacao += 100
+			elif window.count(piece) == 3 and window.count(ESPACO_VAZIO) == 1:
+				pontuacao += 10
+			elif window.count(piece) == 2 and window.count(ESPACO_VAZIO) == 1 or window.count(ESPACO_VAZIO) == 2:
+				pontuacao += 4
+	return pontuacao
+
+
+
+def escolher_melhor_movimento(board, piece):
+	valid_locations = get_valid_locations(board)
+	melhor_pontuacao = 0
+	melhor_coluna = random.choice(valid_locations)
+	for col in valid_locations:	
+		row = get_next_open_row(board, col)
+		temp_board = board.copy()
+		drop_piece(temp_board, row, col, piece)
+		pontuacao = avaliar_posicao(temp_board, piece)
+		print(pontuacao)
+		# se a gente encontrar um caminho otimo, a gente escolhe esse caminho
+		if pontuacao > melhor_pontuacao:
+			melhor_pontuacao = pontuacao
+			melhor_coluna = col
+	return melhor_coluna
 
 
 board = create_board()
 print_board(board)
 game_over = False
-turn = 0
+
 
 pygame.init()
 
@@ -93,6 +162,8 @@ pygame.display.update()
 
 myfont = pygame.font.SysFont("monospace", 75)
 
+turn = random.randint(JOGADOR, IA)
+
 while not game_over:
 
 	for event in pygame.event.get():
@@ -102,43 +173,49 @@ while not game_over:
 		if event.type == pygame.MOUSEMOTION:
 			pygame.draw.rect(screen, BLACK, (0,0, width, SQUARESIZE))
 			posx = event.pos[0]
-			if turn == 0:
+			if turn == JOGADOR:
 				pygame.draw.circle(screen, RED, (posx, int(SQUARESIZE/2)), RADIUS)
-			else: 
-				pygame.draw.circle(screen, YELLOW, (posx, int(SQUARESIZE/2)), RADIUS)
+
 		pygame.display.update()
 
 		if event.type == pygame.MOUSEBUTTONDOWN:
 			pygame.draw.rect(screen, BLACK, (0,0, width, SQUARESIZE))
 			#print(event.pos)
 			# Ask for Player 1 Input
-			if turn == 0:
+			if turn == JOGADOR:
 				posx = event.pos[0]
 				col = int(math.floor(posx/SQUARESIZE))
 
 				if is_valid_location(board, col):
 					row = get_next_open_row(board, col)
-					drop_piece(board, row, col, PLAYER_PIECE)
+					drop_piece(board, row, col, PECA_JOGADOR)
 
-					if winning_move(board, 1):
+					if winning_move(board, PECA_JOGADOR):
 						label = myfont.render("Player 1 wins!!", 1, RED)
 						screen.blit(label, (40,10))
 						game_over = True
 
+					print_board(board)
+					draw_board(board)
 
-			# # Ask for Player 2 Input
-			else:				
-				posx = event.pos[0]
-				col = int(math.floor(posx/SQUARESIZE))
+					turn += 1
+					turn = turn % 2
 
-				if is_valid_location(board, col):
-					row = get_next_open_row(board, col)
-					drop_piece(board, row, col, IA_PIECE)
+	## Turno da IA		
+	if turn == IA and not game_over:				
+		
+		# col = random.randint(0, COLUMN_COUNT-1)
+		col = escolher_melhor_movimento(board, PECA_IA)
 
-					if winning_move(board, 2):
-						label = myfont.render("Player 2 wins!!", 1, YELLOW)
-						screen.blit(label, (40,10))
-						game_over = True
+		if is_valid_location(board, col):
+			pygame.time.wait(500)
+			row = get_next_open_row(board, col)
+			drop_piece(board, row, col, PECA_IA)
+
+			if winning_move(board, PECA_IA):
+				label = myfont.render("Player 2 wins!!", 1, YELLOW)
+				screen.blit(label, (40,10))
+				game_over = True
 
 			print_board(board)
 			draw_board(board)
@@ -146,5 +223,5 @@ while not game_over:
 			turn += 1
 			turn = turn % 2
 
-			if game_over:
-				pygame.time.wait(3000)
+	if game_over:
+		pygame.time.wait(3000)
