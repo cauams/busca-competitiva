@@ -90,37 +90,39 @@ def avaliar_posicao(board, piece):
 		row_array = [int(i) for i in list(board[r,:])] # r,: significa que estamos pegando a linha r inteira junto com todas as colunas
 		for c in range(COLUMN_COUNT-3):
 			window = row_array[c:c+4]
-			if window.count(piece) == 4: # pontuacao pra oportunidade de ganhar horizontalmente
-				pontuacao += 100
-			elif window.count(piece) == 3 and window.count(ESPACO_VAZIO) == 1: # pontuacao pra oportunidade de enfileirar 3 horizontalmente
-				pontuacao += 10
-			elif window.count(piece) == 2 and window.count(ESPACO_VAZIO) == 1 or window.count(ESPACO_VAZIO) == 2:
-				pontuacao += 4
+			pontuacao += definir_valor_tela(window, piece)
 
 	## avaliacao vertical
 	for c in range(COLUMN_COUNT):
 		col_array = [int(i) for i in list(board[:,c])]
 		for r in range(ROW_COUNT-3):
 			window = col_array[r:r+4]
-			if window.count(piece) == 4:
-				pontuacao += 100
-			elif window.count(piece) == 3 and window.count(ESPACO_VAZIO) == 1:
-				pontuacao += 10
-			elif window.count(piece) == 2 and window.count(ESPACO_VAZIO) == 1 or window.count(ESPACO_VAZIO) == 2:
-				pontuacao += 4
+			pontuacao += definir_valor_tela(window, piece)
 
 	## avaliacao diagonal
 	for r in range(ROW_COUNT-3):
 		for c in range(COLUMN_COUNT-3):
 			window = [board[r+i][c+i] for i in range(4)]
-			if window.count(piece) == 4:
-				pontuacao += 100
-			elif window.count(piece) == 3 and window.count(ESPACO_VAZIO) == 1:
-				pontuacao += 10
-			elif window.count(piece) == 2 and window.count(ESPACO_VAZIO) == 1 or window.count(ESPACO_VAZIO) == 2:
-				pontuacao += 4
+			pontuacao += definir_valor_tela(window, piece)
 	return pontuacao
 
+def definir_valor_tela(window, piece):
+	pontuacao = 0
+	peca_negativa = PECA_JOGADOR
+	if piece == PECA_JOGADOR:
+		peca_negativa = PECA_IA
+	
+	if window.count(piece) == 4: # pontuacao pra oportunidade de ganhar horizontalmente
+		pontuacao += 100
+	elif window.count(piece) == 3 and window.count(ESPACO_VAZIO) == 1: # pontuacao pra oportunidade de enfileirar 3 horizontalmente
+		pontuacao += 10
+	elif window.count(piece) == 2 and window.count(ESPACO_VAZIO) == 2:
+		pontuacao += 4
+
+	if window.count(peca_negativa) == 3 and window.count(ESPACO_VAZIO) == 1:
+		pontuacao -= 8
+	
+	return pontuacao
 
 
 def escolher_melhor_movimento(board, piece):
