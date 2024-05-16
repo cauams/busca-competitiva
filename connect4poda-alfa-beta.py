@@ -159,7 +159,7 @@ function minimax(node, depth, maximizingPlayer) is
         return value
 
 '''
-def minimax(board, depth, maximizingPlayer):
+def minimax(board, depth, alfa, beta, maximizingPlayer):
 	locais_validos = get_valid_locations(board)
 	foi_lance_final = se_for_lance_final(board)
 	if depth == 0 or foi_lance_final:
@@ -179,10 +179,13 @@ def minimax(board, depth, maximizingPlayer):
 			row = get_next_open_row(board, col)
 			copia_tabuleiro = board.copy()
 			drop_piece(copia_tabuleiro, row, col, PECA_IA)
-			novo_valor = minimax(copia_tabuleiro, depth-1, False)[0]
+			novo_valor = minimax(copia_tabuleiro, depth-1, alfa, beta, False)[0]
 			if novo_valor > valor:
 				valor = novo_valor
 				melhor_coluna = random.choice(locais_validos)
+			alfa = max(alfa, valor)
+			if alfa >= beta:
+				break
 		return valor, melhor_coluna
 	else:
 		valor = math.inf
@@ -190,10 +193,13 @@ def minimax(board, depth, maximizingPlayer):
 			row = get_next_open_row(board, col)
 			copia_tabuleiro = board.copy()
 			drop_piece(copia_tabuleiro, row, col, PECA_JOGADOR)
-			novo_valor = minimax(copia_tabuleiro, depth-1, True)[0]
+			novo_valor = minimax(copia_tabuleiro, depth-1, alfa, beta, True)[0]
 			if novo_valor < valor:
 				valor = novo_valor
 				melhor_coluna = random.choice(locais_validos)
+			beta = min(beta, valor)
+			if alfa >= beta:
+				break
 		return valor, melhor_coluna	
 
 def se_for_lance_final(board):
@@ -280,7 +286,7 @@ while not game_over:
 	## Turno da IA		
 	if turn == IA and not game_over:				
 		
-		valor_minimax, col  = minimax(board, 5, True)
+		valor_minimax, col  = minimax(board, 5, -math.inf, math.inf, True)
 
 		if is_valid_location(board, col):
 			pygame.time.wait(500)
