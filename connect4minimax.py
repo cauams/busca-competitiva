@@ -121,9 +121,83 @@ def definir_valor_tela(window, piece):
 
 	if window.count(peca_negativa) == 3 and window.count(ESPACO_VAZIO) == 1:
 		pontuacao -= 8
-	
 	return pontuacao
+'''
+ROTINA minimax(nó, profundidade, maximizador)
+    SE nó é um nó terminal OU profundidade = 0 ENTÃO
+        RETORNE o valor da heurística do nó
+    SENÃO SE maximizador é FALSE ENTÃO
+        α ← +∞
+        PARA CADA filho DE nó
+            α ← min(α, minimax(filho, profundidade-1,true))
+        FIM PARA
+        RETORNE α
+    SENÃO
+        //Maximizador
+        α ← -∞
+        //Escolher a maior dentre as perdas causadas pelo minimizador
+        PARA CADA filho DE nó
+            α ← max(α, minimax(filho, profundidade-1,false))
+        FIM PARA
+        RETORNE α
+    FIM SE
+FIM ROTINA
 
+
+function minimax(node, depth, maximizingPlayer) is
+    if depth = 0 or node is a terminal node then
+        return the heuristic value of node
+    if maximizingPlayer then
+        value := −∞
+        for each child of node do
+            value := max(value, minimax(child, depth − 1, FALSE))
+        return value
+    else (* minimizing player *)
+        value := +∞
+        for each child of node do
+            value := min(value, minimax(child, depth − 1, TRUE))
+        return value
+
+'''
+def minimax(board, depth, maximizingPlayer):
+	locais_validos = get_valid_locations(board)
+	foi_lance_final = se_for_lance_final(board)
+	if depth == 0 or foi_lance_final:
+		if foi_lance_final:
+			if winning_move(board, PECA_IA):
+				return (100000000, None) # a ia ganhou
+			elif winning_move(board, PECA_JOGADOR):
+				return (-100000000, None) # o jogador ganhou
+			else: 
+				return (0, None) # situação de empate
+		else:
+			return definir_valor_tela(board, PECA_IA), None
+	if maximizingPlayer:
+		valor = -math.inf
+		
+		for col in locais_validos:
+			row = get_next_open_row(board, col)
+			copia_tabuleiro = board.copy()
+			drop_piece(copia_tabuleiro, row, col, PECA_IA)
+			novo_valor = minimax(copia_tabuleiro, depth-1, False)[0]
+			if novo_valor > valor:
+				valor = novo_valor
+				melhor_coluna = random.choice(locais_validos)
+		return valor, melhor_coluna
+	else:
+		valor = math.inf
+		for col in locais_validos:
+			row = get_next_open_row(board, col)
+			copia_tabuleiro = board.copy()
+			drop_piece(copia_tabuleiro, row, col, PECA_JOGADOR)
+			novo_valor = minimax(copia_tabuleiro, depth-1, True)[0]
+			if novo_valor < valor:
+				valor = novo_valor
+				melhor_coluna = random.choice(locais_validos)
+		return valor, melhor_coluna	
+
+def se_for_lance_final(board):
+	return winning_move(board, PECA_JOGADOR) or winning_move(board, PECA_IA) or len(get_valid_locations(board)) == 0
 
 def escolher_melhor_movimento(board, piece):
 	valid_locations = get_valid_locations(board)
@@ -207,7 +281,8 @@ while not game_over:
 	if turn == IA and not game_over:				
 		
 		# col = random.randint(0, COLUMN_COUNT-1)
-		col = escolher_melhor_movimento(board, PECA_IA)
+		#col = escolher_melhor_movimento(board, PECA_IA)
+		valor_minimax, col  = minimax(board, 5, True)
 
 		if is_valid_location(board, col):
 			pygame.time.wait(500)
